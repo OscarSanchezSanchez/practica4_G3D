@@ -101,12 +101,16 @@ unsigned int uVertexTexPP;
 unsigned int vertexBuffTexId;
 
 //Uniform DOF
-float uFocalDistance;
-float uMaxDistanceFactor;
+unsigned int uFocalDistance;
+unsigned int uMaxDistanceFactor;
 
 //Vars DOF
-float focalDistance = -25.0;
-float maxDistanceFactor = 1.0 / 5.0;
+float focalDistance = -25.0f;
+float maxDistanceFactor = 1.0f / 5.0f;
+
+const float modifyDist = 1.0f;
+const float modDistFactor = 2.0;
+
 
 //////////////////////////////////////////////////////////////
 // Funciones auxiliares
@@ -344,6 +348,10 @@ void initShaderPP(const char* vname, const char* fname)
 	uColorTexPP = glGetUniformLocation(postProccesProgram, "colorTex");
 	inPosPP = glGetAttribLocation(postProccesProgram, "inPos");
 
+	//DOF
+	uFocalDistance = glGetUniformLocation(postProccesProgram, "focalDistance");
+	uMaxDistanceFactor = glGetUniformLocation(postProccesProgram, "maxDistanceFactor");
+
 	glUseProgram(postProccesProgram);
 
 	if (uColorTexPP != -1)
@@ -546,6 +554,10 @@ void renderFunc()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glUseProgram(postProccesProgram);
+
+	if (uFocalDistance != -1) glUniform1fv(uFocalDistance, 1, &focalDistance);
+	if (uMaxDistanceFactor != -1) glUniform1fv(uMaxDistanceFactor, 1, &maxDistanceFactor);
+
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 
@@ -704,8 +716,21 @@ void keyboardFunc(unsigned char key, int x, int y)
 	case 'n':
 		blurParams.b -= modifyBlur;
 		break;
-	case 'v':
+	case 'y':
 		blurParams.a -= modifyBlur;
+		break;
+	//DOF
+	case 'z':
+		focalDistance += modifyDist;
+		break;
+	case 'x':
+		focalDistance -= modifyDist;
+		break;
+	case 'c':
+		maxDistanceFactor *= modDistFactor;
+		break;
+	case 'v':
+		maxDistanceFactor /= modDistFactor;
 		break;
 	default:
 		break;
