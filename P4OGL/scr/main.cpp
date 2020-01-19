@@ -114,6 +114,18 @@ int inPosPP;
 unsigned int uVertexTexPP;
 unsigned int vertexBuffTexId;
 
+//Uniform DOF
+unsigned int uFocalDistance;
+unsigned int uMaxDistanceFactor;
+
+//Vars DOF
+float focalDistance = -25.0f;
+float maxDistanceFactor = 1.0f / 5.0f;
+
+const float modifyDist = 1.0f;
+const float modDistFactor = 2.0;
+
+
 //////////////////////////////////////////////////////////////
 // Funciones auxiliares
 //////////////////////////////////////////////////////////////
@@ -350,6 +362,10 @@ void initShaderPP(const char* vname, const char* fname)
 	uColorTexPP = glGetUniformLocation(postProccesProgram, "colorTex");
 	inPosPP = glGetAttribLocation(postProccesProgram, "inPos");
 
+	//DOF
+	uFocalDistance = glGetUniformLocation(postProccesProgram, "focalDistance");
+	uMaxDistanceFactor = glGetUniformLocation(postProccesProgram, "maxDistanceFactor");
+
 	//Apartado 4, uniform para las mascaras de convolucion
 	umaskfactor = glGetUniformLocation(postProccesProgram, "maskFactor");
 	umask = glGetUniformLocation(postProccesProgram, "mask");
@@ -557,6 +573,12 @@ void renderFunc()
 
 	glUseProgram(postProccesProgram);
 
+	if (uFocalDistance != -1) 
+        glUniform1fv(uFocalDistance, 1, &focalDistance);
+	if (uMaxDistanceFactor != -1) 
+        glUniform1fv(uMaxDistanceFactor, 1, &maxDistanceFactor);
+
+
 	//apartado4
 	if (umaskfactor != -1) 
 		glUniform1fv(umaskfactor, 1, &maskFactor);
@@ -722,8 +744,21 @@ void keyboardFunc(unsigned char key, int x, int y)
 	case 'n':
 		blurParams.b -= modifyBlur;
 		break;
-	case 'v':
+	case 'y':
 		blurParams.a -= modifyBlur;
+		break;
+	//DOF
+	case 'z':
+		focalDistance += modifyDist;
+		break;
+	case 'x':
+		focalDistance -= modifyDist;
+		break;
+	case 'c':
+		maxDistanceFactor *= modDistFactor;
+		break;
+	case 'v':
+		maxDistanceFactor /= modDistFactor;
 		break;
 	case '1':
 		//enfocar

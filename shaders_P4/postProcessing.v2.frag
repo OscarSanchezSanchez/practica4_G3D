@@ -10,8 +10,9 @@ layout(location = 0) out vec4 outColor;
 uniform sampler2D colorTex;
 uniform sampler2D vertexTex;
 
-const float focalDistance = -25.0;
-const float maxDistanceFactor = 1.0/5.0;
+//DOF
+uniform float focalDistance;
+uniform float maxDistanceFactor;
 
 uniform float mask[25];
 uniform float maskFactor;
