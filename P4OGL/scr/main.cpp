@@ -61,6 +61,7 @@ unsigned int colorVBO;
 unsigned int normalVBO;
 unsigned int texCoordVBO;
 unsigned int triangleIndexVBO;
+unsigned int tangentVBO;
 
 unsigned int colorTexId;
 unsigned int emiTexId;
@@ -132,6 +133,11 @@ float pnear = 1.0f;
 float pfar = 50.0f;
 unsigned int uDepthTexPP;
 
+//Bump Mapping
+unsigned int uNormalTex;
+
+unsigned int inTangent;
+unsigned int normalTexId;
 
 //////////////////////////////////////////////////////////////
 // Funciones auxiliares
@@ -269,7 +275,8 @@ void destroy()
 	if (inPos != -1) glDeleteBuffers(1, &posVBO);
 	if (inColor != -1) glDeleteBuffers(1, &colorVBO);
 	if (inNormal != -1) glDeleteBuffers(1, &normalVBO);
-	if (inTexCoord != -1) glDeleteBuffers(1, &texCoordVBO);
+	if (inTexCoord != -1) glDeleteBuffers(1, &texCoordVBO); 
+	if (inTangent != -1) glDeleteBuffers(1, &tangentVBO);
 	glDeleteBuffers(1, &triangleIndexVBO);
 
 	glDeleteVertexArrays(1, &vao);
@@ -306,7 +313,7 @@ void initShaderFw(const char *vname, const char *fname)
 	glBindAttribLocation(program, 1, "inColor");
 	glBindAttribLocation(program, 2, "inNormal");
 	glBindAttribLocation(program, 3, "inTexCoord");
-
+	glBindAttribLocation(program, 4, "inTangent");
 
 	glLinkProgram(program);
 
@@ -334,11 +341,14 @@ void initShaderFw(const char *vname, const char *fname)
 
 	uColorTex = glGetUniformLocation(program, "colorTex");
 	uEmiTex = glGetUniformLocation(program, "emiTex");
+	uNormalTex = glGetUniformLocation(program, "normalTex");
 
 	inPos = glGetAttribLocation(program, "inPos");
 	inColor = glGetAttribLocation(program, "inColor");
 	inNormal = glGetAttribLocation(program, "inNormal");
 	inTexCoord = glGetAttribLocation(program, "inTexCoord");
+	inTangent = glGetAttribLocation(program, "inTangent");
+
 }
 
 void initShaderPP(const char* vname, const char* fname)
@@ -433,6 +443,16 @@ void initObj()
 		glEnableVertexAttribArray(inTexCoord);
 	}
 
+	if (inTangent != -1)
+	{
+		glGenBuffers(1, &tangentVBO);
+		glBindBuffer(GL_ARRAY_BUFFER, tangentVBO);
+		glBufferData(GL_ARRAY_BUFFER, cubeNVertex * sizeof(float) * 3,
+			cubeVertexTangent, GL_STATIC_DRAW);
+		glVertexAttribPointer(inTangent, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glEnableVertexAttribArray(inTangent);
+	}
+
 	glGenBuffers(1, &triangleIndexVBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangleIndexVBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
@@ -443,6 +463,7 @@ void initObj()
 
 	colorTexId = loadTex("../img/color2.png");
 	emiTexId = loadTex("../img/emissive.png");
+	normalTexId = loadTex("../img/normal.png");
 }
 
 void initPlane()
@@ -545,6 +566,13 @@ void renderFunc()
 		glUniform1i(uEmiTex, 1);
 	}
 
+	if (uNormalTex != -1)
+	{
+		glActiveTexture(GL_TEXTURE0 + 2);
+		glBindTexture(GL_TEXTURE_2D, normalTexId);
+		glUniform1i(normalTexId, 2);
+	}
+
 
 	model = glm::mat4(2.0f);
 	model[3].w = 1.0f;
@@ -599,7 +627,7 @@ void renderFunc()
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 
-	//glEnable(GL_BLEND);
+	glEnable(GL_BLEND);
 	/*glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glBlendEquation(GL_FUNC_ADD);*/
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
