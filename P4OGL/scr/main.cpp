@@ -191,8 +191,8 @@ int main(int argc, char** argv)
 
 	initContext(argc, argv);
 	initOGL();
-	initShaderFw("../shaders_P4/fwRendering.v0.vert", "../shaders_P4/fwRendering.v2.frag");
-	initShaderPP("../shaders_P4/postProcessing.v1.vert","../shaders_P4/postProcessing.v2.frag");
+	initShaderFw("../shaders_P4/fwRendering.vert", "../shaders_P4/fwRendering.frag");
+	initShaderPP("../shaders_P4/postProcessing.vert","../shaders_P4/postProcessing.frag");
 
 	initObj();
 	initPlane();
