@@ -21,10 +21,26 @@
 //////////////////////////////////////////////////////////////
 
 //Matrices
-glm::mat4	proj = glm::mat4(1.0f);
-glm::mat4	view = glm::mat4(1.0f);
-glm::mat4	model = glm::mat4(1.0f);
+glm::mat4 proj = glm::mat4(1.0f);
+glm::mat4 view = glm::mat4(1.0f);
+glm::mat4 model = glm::mat4(1.0f);
 
+//Vars desplazamientos por teclado
+float displacement = 0.1f;
+//Vars giro de c�mara por teclado
+float yaw_angle = 0.01f;
+
+
+//Vars movimiento de c�mara con el rat�n
+const float orbitAngle = 0.1f;
+float lastX = 0.0f;
+float lastY = 0.0f;
+float desplX = 0.0f;
+float desplY = 0.0f;
+
+//Vars motion blur
+glm::vec4 blurParams(1.0f, 1.0f, 1.0f, 0.0f);
+float modifyBlur = 0.1f;
 
 //////////////////////////////////////////////////////////////
 // Variables que nos dan acceso a Objetos OpenGL
@@ -77,6 +93,7 @@ unsigned int postProccesFShader;
 unsigned int postProccesProgram;
 //Uniform
 unsigned int uColorTexPP;
+
 //Atributos
 int inPosPP;
 
@@ -93,6 +110,7 @@ void resizeFunc(int width, int height);
 void idleFunc();
 void keyboardFunc(unsigned char key, int x, int y);
 void mouseFunc(int button, int state, int x, int y);
+void mouseMotionFunc(int x, int y);
 
 void renderCube();
 
@@ -179,6 +197,7 @@ void initContext(int argc, char** argv)
 	glutIdleFunc(idleFunc);
 	glutKeyboardFunc(keyboardFunc);
 	glutMouseFunc(mouseFunc);
+	glutMotionFunc(mouseMotionFunc);
 }
 
 void initOGL()
@@ -526,9 +545,9 @@ void renderFunc()
 	/*glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glBlendEquation(GL_FUNC_ADD);*/
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	/*glBlendFunc(GL_CONSTANT_COLOR, GL_CONSTANT_ALPHA);
-	glBlendColor(0.5f, 0.5f, 0.5f, 0.6f);
-	glBlendEquation(GL_FUNC_ADD);*/
+	glBlendFunc(GL_CONSTANT_COLOR, GL_CONSTANT_ALPHA);
+	glBlendColor(blurParams.r, blurParams.g, blurParams.b, blurParams.a);
+	glBlendEquation(GL_FUNC_ADD);
 
 
 	glActiveTexture(GL_TEXTURE0);
@@ -588,9 +607,6 @@ void idleFunc()
 	glutPostRedisplay();
 }
 
-void keyboardFunc(unsigned char key, int x, int y){}
-void mouseFunc(int button, int state, int x, int y){}
-
 void resizeFBO(unsigned int w, unsigned int h)
 {
 	glBindTexture(GL_TEXTURE_2D, colorBuffTexId);
@@ -630,3 +646,96 @@ void resizeFBO(unsigned int w, unsigned int h)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void keyboardFunc(unsigned char key, int x, int y)
+{
+	std::cout << "Se ha pulsado la tecla " << key << std::endl << std::endl;
+
+	glm::mat4 rotation(1.0f);
+
+	switch (key)
+	{
+	case 'w':
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, displacement));
+		break;
+	case 's':
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -displacement));
+		break;
+	case 'a':
+		view = glm::translate(view, glm::vec3(displacement, 0.0f, 0.0f));
+		break;
+	case 'd':
+		view = glm::translate(view, glm::vec3(-displacement, 0.0f, 0.0f));
+		break;
+	case 'q':
+		rotation = glm::rotate(rotation, -yaw_angle, glm::vec3(0.0f, 1.0f, 0.0f));
+		view = rotation * view;
+		break;
+	case 'e':
+		rotation = glm::rotate(rotation, yaw_angle, glm::vec3(0.0f, 1.0f, 0.0f));
+		view = rotation * view;
+		break;
+	//Motion blur
+	case 'r':
+		blurParams.r += modifyBlur;
+		break;
+	case 'g':
+		blurParams.g += modifyBlur;
+		break;
+	case 'b':
+		blurParams.b += modifyBlur;
+		break;
+	case 'f':
+		blurParams.a += modifyBlur;
+		break;
+	case 't':
+		blurParams.r -= modifyBlur;
+		break;
+	case 'h':
+		blurParams.g -= modifyBlur;
+		break;
+	case 'n':
+		blurParams.b -= modifyBlur;
+		break;
+	case 'v':
+		blurParams.a -= modifyBlur;
+		break;
+	default:
+		break;
+	}
+
+	glutPostRedisplay();
+
+}
+
+void mouseFunc(int button, int state, int x, int y)
+{
+	if (state == 0)
+		std::cout << "Se ha pulsado el boton ";
+	else
+		std::cout << "Se ha soltado el boton ";
+
+	if (button == 0) std::cout << "de la izquierda del raton " << std::endl;
+	if (button == 1) std::cout << "central del raton " << std::endl;
+	if (button == 2) std::cout << "de la derecha del raton " << std::endl;
+
+	std::cout << "en la posicion " << x << " " << y << std::endl << std::endl;
+}
+
+void mouseMotionFunc(int x, int y)
+{
+
+	float xOffset = (float)x - lastX;
+	float yOffset = (float)y - lastY;
+
+	lastX = (float)x;
+	lastY = (float)y;
+
+	desplX += xOffset;
+	desplY += yOffset;
+
+	glm::mat4 rotation(1.0f);
+
+	view = glm::rotate(view, orbitAngle, glm::vec3(desplY, desplX, 0.0));
+
+	glutPostRedisplay();
+}

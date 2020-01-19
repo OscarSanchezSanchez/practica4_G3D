@@ -43,7 +43,8 @@ void main()
 	vec4 color = vec4 (0.0);
 
 	for (uint i = 0u; i < MASK_SIZE; i++)
-	{		vec2 iidx = texCoord + ts * texIdx[i];
+	{
+		vec2 iidx = texCoord + ts * texIdx[i];
 		color += texture(colorTex, iidx,0.0) * mask[i];
 	}
 
