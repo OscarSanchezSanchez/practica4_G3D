@@ -15,6 +15,7 @@
 
 #define RAND_SEED 31415926
 #define SCREEN_SIZE 500,500
+#define MASK_SIZE 25
 
 //////////////////////////////////////////////////////////////
 // Datos que se almacenan en la memoria de la CPU
@@ -67,12 +68,16 @@ unsigned int emiTexId;
 unsigned int planeVAO;
 unsigned int planeVertexVBO;
 
-//Por definir
+//Shaders and programs
 unsigned int vshader;
 unsigned int fshader;
 unsigned int program;
 
-//Variables Uniform 
+unsigned int postProccesVShader;
+unsigned int postProccesFShader;
+unsigned int postProccesProgram;
+
+//Uniform variables
 int uModelViewMat;
 int uModelViewProjMat;
 int uNormalMat;
@@ -87,10 +92,19 @@ int inColor;
 int inNormal;
 int inTexCoord;
 
-//Post-proceso
-unsigned int postProccesVShader;
-unsigned int postProccesFShader;
-unsigned int postProccesProgram;
+//Convolution variables and uniforms
+int umaskfactor;
+int umask;
+float maskFactor = float(1.0 / 65.0);
+float* mask = new float[MASK_SIZE] 
+{
+	1.0f * maskFactor, 2.0f * maskFactor, 3.0f * maskFactor, 2.0f * maskFactor, 1.0f * maskFactor,
+	2.0f * maskFactor, 3.0f * maskFactor, 4.0f * maskFactor, 3.0f * maskFactor, 2.0f * maskFactor,
+	3.0f * maskFactor, 4.0f * maskFactor, 5.0f * maskFactor, 4.0f * maskFactor, 3.0f * maskFactor,
+	2.0f * maskFactor, 3.0f * maskFactor, 4.0f * maskFactor, 3.0f * maskFactor, 2.0f * maskFactor,
+	1.0f * maskFactor, 2.0f * maskFactor, 3.0f * maskFactor, 2.0f * maskFactor, 1.0f * maskFactor 
+};
+
 //Uniform
 unsigned int uColorTexPP;
 
@@ -336,6 +350,10 @@ void initShaderPP(const char* vname, const char* fname)
 	uColorTexPP = glGetUniformLocation(postProccesProgram, "colorTex");
 	inPosPP = glGetAttribLocation(postProccesProgram, "inPos");
 
+	//Apartado 4, uniform para las mascaras de convolucion
+	umaskfactor = glGetUniformLocation(postProccesProgram, "maskFactor");
+	umask = glGetUniformLocation(postProccesProgram, "mask");
+
 	glUseProgram(postProccesProgram);
 
 	if (uColorTexPP != -1)
@@ -538,6 +556,14 @@ void renderFunc()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glUseProgram(postProccesProgram);
+
+	//apartado4
+	if (umaskfactor != -1) 
+		glUniform1fv(umaskfactor, 1, &maskFactor);
+	if (umask != -1) 
+		glUniform1fv(umask, 25, mask);
+	//end-apartado4
+
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 
@@ -698,6 +724,41 @@ void keyboardFunc(unsigned char key, int x, int y)
 		break;
 	case 'v':
 		blurParams.a -= modifyBlur;
+		break;
+	case '1':
+		//enfocar
+		maskFactor = float(1.0);
+		mask = new float[25]
+		{
+			0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor,
+			0.0f * maskFactor, 0.0f * maskFactor, -1.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor,
+			0.0f * maskFactor, -1.0f * maskFactor, 5.0f * maskFactor, -1.0f * maskFactor, 0.0f * maskFactor,
+			0.0f * maskFactor, 0.0f * maskFactor, -1.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor,
+			0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor 
+		};
+		break;
+	case '2':
+		//detectar bordes
+		maskFactor = float(1.0);
+		mask = new float[25]
+		{
+			0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor,
+			0.0f * maskFactor, 0.0f * maskFactor, 1.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor,
+			0.0f * maskFactor, 1.0f * maskFactor, -4.0f * maskFactor, 1.0f * maskFactor, 0.0f * maskFactor,
+			0.0f * maskFactor, 0.0f * maskFactor, 1.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor,
+			0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor, 0.0f * maskFactor 
+		};
+		break;
+	case '0':
+		maskFactor = float(1.0 / 65.0);
+		mask = new float[MASK_SIZE]
+		{
+			1.0f * maskFactor, 2.0f * maskFactor, 3.0f * maskFactor, 2.0f * maskFactor, 1.0f * maskFactor,
+			2.0f * maskFactor, 3.0f * maskFactor, 4.0f * maskFactor, 3.0f * maskFactor, 2.0f * maskFactor,
+			3.0f * maskFactor, 4.0f * maskFactor, 5.0f * maskFactor, 4.0f * maskFactor, 3.0f * maskFactor,
+			2.0f * maskFactor, 3.0f * maskFactor, 4.0f * maskFactor, 3.0f * maskFactor, 2.0f * maskFactor,
+			1.0f * maskFactor, 2.0f * maskFactor, 3.0f * maskFactor, 2.0f * maskFactor, 1.0f * maskFactor
+		};
 		break;
 	default:
 		break;
