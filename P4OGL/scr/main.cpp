@@ -123,7 +123,14 @@ float focalDistance = -25.0f;
 float maxDistanceFactor = 1.0f / 5.0f;
 
 const float modifyDist = 1.0f;
-const float modDistFactor = 2.0;
+const float modDistFactor = 2.0f;
+
+//Variables DOF by Z-buffer
+unsigned int uNear;
+unsigned int uFar;
+float pnear = 1.0f;
+float pfar = 50.0f;
+unsigned int uDepthTexPP;
 
 
 //////////////////////////////////////////////////////////////
@@ -235,7 +242,7 @@ void initOGL()
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glEnable(GL_CULL_FACE);
 
-	proj = glm::perspective(glm::radians(60.0f), 1.0f, 1.0f, 50.0f);
+	proj = glm::perspective(glm::radians(60.0f), 1.0f, pnear, pfar);
 	view = glm::mat4(1.0f);
 	view[3].z = -25.0f;
 }
@@ -366,17 +373,17 @@ void initShaderPP(const char* vname, const char* fname)
 	uFocalDistance = glGetUniformLocation(postProccesProgram, "focalDistance");
 	uMaxDistanceFactor = glGetUniformLocation(postProccesProgram, "maxDistanceFactor");
 
+	//z-buffer 
+	uNear = glGetUniformLocation(postProccesProgram, "near");
+	uFar = glGetUniformLocation(postProccesProgram, "far");
+	uDepthTexPP = glGetUniformLocation(postProccesProgram, "depthTex");
+
 	//Apartado 4, uniform para las mascaras de convolucion
 	umaskfactor = glGetUniformLocation(postProccesProgram, "maskFactor");
 	umask = glGetUniformLocation(postProccesProgram, "mask");
 
-	glUseProgram(postProccesProgram);
-
-	if (uColorTexPP != -1)
-		glUniform1i(uColorTexPP, 0);
-
 	uVertexTexPP = glGetUniformLocation(postProccesProgram, "vertexTex");
-	if (uVertexTexPP != -1) glUniform1i(uVertexTexPP, 1);
+
 
 }
 
@@ -520,7 +527,6 @@ void renderFunc()
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
 	/**/
 	glUseProgram(program);
 
@@ -578,8 +584,12 @@ void renderFunc()
 	if (uMaxDistanceFactor != -1) 
         glUniform1fv(uMaxDistanceFactor, 1, &maxDistanceFactor);
 
+	if (uNear != -1) 
+		glUniform1fv(uNear, 1, &pnear);
+	if (uFar != -1) 
+		glUniform1fv(uFar, 1, &pfar);
 
-	//apartado4
+	//Apartado4
 	if (umaskfactor != -1) 
 		glUniform1fv(umaskfactor, 1, &maskFactor);
 	if (umask != -1) 
@@ -589,7 +599,7 @@ void renderFunc()
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 
-	glEnable(GL_BLEND);
+	//glEnable(GL_BLEND);
 	/*glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glBlendEquation(GL_FUNC_ADD);*/
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -598,10 +608,25 @@ void renderFunc()
 	glBlendEquation(GL_FUNC_ADD);
 
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, colorBuffTexId);
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_2D, vertexBuffTexId);
+	if (uColorTexPP != -1)
+	{
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, colorBuffTexId);
+		glUniform1i(uColorTexPP, 0);
+	}
+
+	if (uVertexTexPP != -1)
+	{
+		glActiveTexture(GL_TEXTURE0 + 1);
+		glBindTexture(GL_TEXTURE_2D, vertexBuffTexId);
+		glUniform1i(uVertexTexPP, 1);
+	}
+	if (uDepthTexPP != -1)
+	{
+		glActiveTexture(GL_TEXTURE0 + 2);
+		glBindTexture(GL_TEXTURE_2D, depthBuffTexId);
+		glUniform1i(uDepthTexPP, 2);
+	}
 
 	glBindVertexArray(planeVAO);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -641,7 +666,7 @@ void renderCube()
 void resizeFunc(int width, int height)
 {
 	glViewport(0, 0, width, height);
-	proj = glm::perspective(glm::radians(60.0f), float(width) /float(height), 1.0f, 50.0f);
+	proj = glm::perspective(glm::radians(60.0f), float(width) /float(height), pnear, pfar);
 
 	resizeFBO(width, height);
 
