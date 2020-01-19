@@ -13,17 +13,8 @@ uniform sampler2D vertexTex;
 const float focalDistance = -25.0;
 const float maxDistanceFactor = 1.0/5.0;
 
-/*#define MASK_SIZE 9u
-const float maskFactor = float (1.0/14.0);
-const vec2 texIdx[MASK_SIZE] = vec2[](
-	vec2(-1.0,1.0), vec2(0.0,1.0), vec2(1.0,1.0),
-	vec2(-1.0,0.0), vec2(0.0,0.0), vec2(1.0,0.0),
-	vec2(-1.0,-1.0), vec2(0.0,-1.0), vec2(1.0,-1.0));
-const float mask[MASK_SIZE] = float[](
-	float (1.0*maskFactor), float (2.0*maskFactor), float (1.0*maskFactor),
-	float (2.0*maskFactor), float (2.0*maskFactor), float (2.0*maskFactor),
-	float (1.0*maskFactor), float (2.0*maskFactor), float (1.0*maskFactor));*/
-
+uniform float mask[25];
+uniform float maskFactor;
 
 #define MASK_SIZE 25u
 const vec2 texIdx[MASK_SIZE] = vec2[](
@@ -32,13 +23,6 @@ const vec2 texIdx[MASK_SIZE] = vec2[](
 	vec2(-2.0,0.0), vec2(-1.0,0.0), vec2(0.0,0.0), vec2(1.0,0.0), vec2(2.0,0.0),
 	vec2(-2.0,-1.0), vec2(-1.0,-1.0), vec2(0.0,-1.0), vec2(1.0,-1.0), vec2(2.0,-1.0),
 	vec2(-2.0,-2.0), vec2(-1.0,-2.0), vec2(0.0,-2.0), vec2(1.0,-2.0), vec2(2.0,-2.0));
-const float maskFactor = float (1.0/65.0);
-const float mask[MASK_SIZE] = float[](
-	1.0*maskFactor, 2.0*maskFactor, 3.0*maskFactor,2.0*maskFactor, 1.0*maskFactor,
-	2.0*maskFactor, 3.0*maskFactor, 4.0*maskFactor,3.0*maskFactor, 2.0*maskFactor,
-	3.0*maskFactor, 4.0*maskFactor, 5.0*maskFactor,4.0*maskFactor, 3.0*maskFactor,
-	2.0*maskFactor, 3.0*maskFactor, 4.0*maskFactor,3.0*maskFactor, 2.0*maskFactor,
-	1.0*maskFactor, 2.0*maskFactor, 3.0*maskFactor,2.0*maskFactor, 1.0*maskFactor);
 
 void main()
 {
