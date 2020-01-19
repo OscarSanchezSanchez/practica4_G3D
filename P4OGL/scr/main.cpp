@@ -100,6 +100,14 @@ int inPosPP;
 unsigned int uVertexTexPP;
 unsigned int vertexBuffTexId;
 
+//Uniform DOF
+float uFocalDistance;
+float uMaxDistanceFactor;
+
+//Vars DOF
+float focalDistance = -25.0;
+float maxDistanceFactor = 1.0 / 5.0;
+
 //////////////////////////////////////////////////////////////
 // Funciones auxiliares
 //////////////////////////////////////////////////////////////
