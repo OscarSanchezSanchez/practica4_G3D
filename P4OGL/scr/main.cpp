@@ -75,11 +75,13 @@ int inTexCoord;
 unsigned int postProccesVShader;
 unsigned int postProccesFShader;
 unsigned int postProccesProgram;
-
 //Uniform
 unsigned int uColorTexPP;
 //Atributos
 int inPosPP;
+
+unsigned int uVertexTexPP;
+unsigned int vertexBuffTexId;
 
 //////////////////////////////////////////////////////////////
 // Funciones auxiliares
@@ -132,12 +134,11 @@ int main(int argc, char** argv)
 
 	initContext(argc, argv);
 	initOGL();
-	initShaderFw("../shaders_P4/fwRendering.v0.vert", "../shaders_P4/fwRendering.v0.frag");
-	initShaderPP("../shaders_P4/postProcessing.v0.vert", "../shaders_P4/postProcessing.v0.frag");
+	initShaderFw("../shaders_P4/fwRendering.v0.vert", "../shaders_P4/fwRendering.v2.frag");
+	initShaderPP("../shaders_P4/postProcessing.v1.vert","../shaders_P4/postProcessing.v2.frag");
 
 	initObj();
 	initPlane();
-
 	initFBO();
 	
 	glutMainLoop();
@@ -195,6 +196,16 @@ void initOGL()
 }
 
 
+void initFBO()
+{
+	glGenFramebuffers(1, &fbo);
+	glGenTextures(1, &colorBuffTexId);
+	glGenTextures(1, &depthBuffTexId);
+	glGenTextures(1, &vertexBuffTexId);
+
+	resizeFBO(SCREEN_SIZE);
+}
+
 void destroy()
 {
 	glDetachShader(program, vshader);
@@ -202,12 +213,6 @@ void destroy()
 	glDeleteShader(vshader);
 	glDeleteShader(fshader);
 	glDeleteProgram(program);
-
-	glDetachShader(postProccesProgram, postProccesVShader);
-	glDetachShader(postProccesProgram, postProccesFShader);
-	glDeleteShader(postProccesVShader);
-	glDeleteShader(postProccesFShader);
-	glDeleteProgram(postProccesProgram);
 
 	if (inPos != -1) glDeleteBuffers(1, &posVBO);
 	if (inColor != -1) glDeleteBuffers(1, &colorVBO);
@@ -220,12 +225,19 @@ void destroy()
 	glDeleteTextures(1, &colorTexId);
 	glDeleteTextures(1, &emiTexId);
 
+	glDetachShader(postProccesProgram, postProccesVShader);
+	glDetachShader(postProccesProgram, postProccesFShader);
+	glDeleteShader(postProccesVShader);
+	glDeleteShader(postProccesFShader);
+	glDeleteProgram(postProccesProgram);
+
 	glDeleteBuffers(1, &planeVertexVBO);
 	glDeleteVertexArrays(1, &planeVAO);
 
 	glDeleteFramebuffers(1, &fbo);
 	glDeleteTextures(1, &colorBuffTexId);
 	glDeleteTextures(1, &depthBuffTexId);
+	glDeleteTextures(1, &vertexBuffTexId);
 
 }
 
@@ -275,8 +287,6 @@ void initShaderFw(const char *vname, const char *fname)
 	inColor = glGetAttribLocation(program, "inColor");
 	inNormal = glGetAttribLocation(program, "inNormal");
 	inTexCoord = glGetAttribLocation(program, "inTexCoord");
-
-	
 }
 
 void initShaderPP(const char* vname, const char* fname)
@@ -287,9 +297,7 @@ void initShaderPP(const char* vname, const char* fname)
 	postProccesProgram = glCreateProgram();
 	glAttachShader(postProccesProgram, postProccesVShader);
 	glAttachShader(postProccesProgram, postProccesFShader);
-
 	glBindAttribLocation(postProccesProgram, 0, "inPos");
-	
 	glLinkProgram(postProccesProgram);
 	int linked;
 	glGetProgramiv(postProccesProgram, GL_LINK_STATUS, &linked);
@@ -308,10 +316,14 @@ void initShaderPP(const char* vname, const char* fname)
 	}
 	uColorTexPP = glGetUniformLocation(postProccesProgram, "colorTex");
 	inPosPP = glGetAttribLocation(postProccesProgram, "inPos");
-	
+
 	glUseProgram(postProccesProgram);
+
 	if (uColorTexPP != -1)
 		glUniform1i(uColorTexPP, 0);
+
+	uVertexTexPP = glGetUniformLocation(postProccesProgram, "vertexTex");
+	if (uVertexTexPP != -1) glUniform1i(uVertexTexPP, 1);
 
 }
 
@@ -373,21 +385,15 @@ void initObj()
 	emiTexId = loadTex("../img/emissive.png");
 }
 
-
 void initPlane()
 {
 	glGenVertexArrays(1, &planeVAO);
 	glBindVertexArray(planeVAO);
-
 	glGenBuffers(1, &planeVertexVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, planeVertexVBO);
-
-	glBufferData(GL_ARRAY_BUFFER, planeNVertex * sizeof(float) * 3,
-		planeVertexPos, GL_STATIC_DRAW);
-	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-
+	glBufferData(GL_ARRAY_BUFFER, planeNVertex * sizeof(float) * 3, planeVertexPos, GL_STATIC_DRAW);
+	glVertexAttribPointer(inPosPP, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(inPosPP);
 }
 
 GLuint loadShader(const char *fileName, GLenum type)
@@ -458,7 +464,9 @@ unsigned int loadTex(const char *fileName)
 void renderFunc()
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
 	/**/
 	glUseProgram(program);
@@ -509,20 +517,30 @@ void renderFunc()
 	//*/
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	
+
 	glUseProgram(postProccesProgram);
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 
+	glEnable(GL_BLEND);
+	/*glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBlendEquation(GL_FUNC_ADD);*/
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	/*glBlendFunc(GL_CONSTANT_COLOR, GL_CONSTANT_ALPHA);
+	glBlendColor(0.5f, 0.5f, 0.5f, 0.6f);
+	glBlendEquation(GL_FUNC_ADD);*/
 
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, colorBuffTexId);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, vertexBuffTexId);
 
-	
 	glBindVertexArray(planeVAO);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	
+
+	glDisable(GL_BLEND);
+
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 
@@ -573,42 +591,37 @@ void idleFunc()
 void keyboardFunc(unsigned char key, int x, int y){}
 void mouseFunc(int button, int state, int x, int y){}
 
-
-void initFBO()
-{
-	glGenFramebuffers(1, &fbo);
-	glGenTextures(1, &colorBuffTexId);
-	glGenTextures(1, &depthBuffTexId);
-
-	resizeFBO(SCREEN_SIZE);
-}
-
-
 void resizeFBO(unsigned int w, unsigned int h)
 {
 	glBindTexture(GL_TEXTURE_2D, colorBuffTexId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0,
-		GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	
 	glBindTexture(GL_TEXTURE_2D, depthBuffTexId);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, w, h, 0,
 		GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	
-	
+
+	glBindTexture(GL_TEXTURE_2D, vertexBuffTexId);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 		GL_TEXTURE_2D, colorBuffTexId, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
 		depthBuffTexId, 0);
-	
-	const GLenum buffs[1] = { GL_COLOR_ATTACHMENT1 };
-	glDrawBuffers(1, buffs);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
+		GL_TEXTURE_2D, vertexBuffTexId, 0);
+	const GLenum buffs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, buffs);
+
 	if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
 	{
 		std::cerr << "Error configurando el FBO" << std::endl;
